@@ -1,0 +1,9 @@
+2012-11-19 18:52:42 Error: [MissingControllerException] Controller class WebrootController could not be found.
+#0 C:\xampp\htdocs\CakeTemplate\webroot\index.php(92): Dispatcher->dispatch(Object(CakeRequest), Object(CakeResponse))
+#1 {main}
+2012-11-19 18:52:53 Error: [MissingControllerException] Controller class WebrootController could not be found.
+#0 C:\xampp\htdocs\CakeTemplate\webroot\index.php(92): Dispatcher->dispatch(Object(CakeRequest), Object(CakeResponse))
+#1 {main}
+2012-11-19 18:52:58 Error: [MissingControllerException] Controller class WebrootController could not be found.
+#0 C:\xampp\htdocs\CakeTemplate\webroot\index.php(92): Dispatcher->dispatch(Object(CakeRequest), Object(CakeResponse))
+#1 {main}

@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="TimeTracker" default="package">
+
+
+  <!-- directory for the source code -->
+  <property name="code.dir" value="src/main" />
+
+  <!-- directory for the configuration files -->
+  <property name="config.dir" value="src/config" />
+
+  <!-- Working directory for the build. -->
+  <property name="staging.dir" value="target" />
+
+  <!-- working directory for running things against the project to avoid
+       affecting the source code directories -->
+  <property name="test.build.dir" value="${staging.dir}/test_build" />
+
+
+  <!-- ============================================  -->
+  <!-- Target: clean                                 -->
+  <!-- ============================================  -->
+  <target name="clean">
+    <echo msg="Cleaning..." />
+    <delete dir="${staging.dir}" includeemptydirs="true" />
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: prepare                               -->
+  <!-- ============================================  -->
+  <target name="prepare" depends="clean">
+
+    <!-- make a directory to build a "test" version of the app -->
+    <copy todir="${test.build.dir}">
+      <fileset dir="${code.dir}" />
+    </copy>
+
+    <chmod file="${staging.dir}" mode="0777" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: unitTests                             -->
+  <!-- ============================================  -->
+  <target name="unitTests" depends="prepare">
+
+    <echo msg="Executing unit tests..." />
+
+    <!-- copy the application config to the Config directory -->
+    <copy file="${config.dir}/devbuild/application_config.php"
+          todir="${test.build.dir}/app/Config"/>
+
+    <!-- execute the tests under cake -->
+    <exec command="${phing.dir}/${test.build.dir}/app/Console/cake test app AllTests"
+          dir="${test.build.dir}/app"
+          checkreturn="true">
+    </exec>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: package                               -->
+  <!-- ============================================  -->
+  <target name="package" depends="unitTests">
+    <echo msg="Creating archives..." />
+
+    <tar destfile="${staging.dir}/${phing.project.name}.tar" compression="none"
+         prefix="${phing.project.name}">
+      <fileset dir="${code.dir}">
+        <!-- exclude tests from the resulting package -->
+        <exclude name="${code.dir}/app/Tests"/>
+      </fileset>
+    </tar>
+
+    <echo msg="Files copied and compressed in staging directory OK!" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: setupInstance                         -->
+  <!-- ============================================  -->
+  <target name="setupInstance">
+
+    <fail unless="server.host" message="Need server address to continue: 'server.host'"/>
+
+    <if>
+      <not>
+        <isset property="server.username"/>
+      </not>
+      <then>
+        <property name="server.username" value="ec2-user"/>
+      </then>
+    </if>
+
+    <if>
+      <not>
+        <isset property="server.docroot"/>
+      </not>
+      <then>
+        <property name="server.docroot" value="/var/www/html"/>
+      </then>
+    </if>
+
+    <if>
+      <not>
+        <isset property="server.vhosts.dir"/>
+      </not>
+      <then>
+        <property name="server.vhosts.dir" value="/etc/httpd/vhosts.d"/>
+      </then>
+    </if>
+
+    <if>
+      <not>
+        <isset property="server.php.include.dir"/>
+      </not>
+      <then>
+        <property name="server.php.include.dir" value="/usr/share/php/includes"/>
+      </then>
+    </if>
+
+    <foreach list="${server.host}" param="server.host" target="copyConfig" />
+    <foreach list="${server.host}" param="server.host" target="restartHttpd" />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: copyConfig                            -->
+  <!-- ============================================  -->
+  <target name="copyConfig">
+
+    <echo msg="Copying config to ${server.host}" />
+
+    <if>
+      <not>
+        <isset property="vhost.servername"/>
+      </not>
+      <then>
+        <property name="vhost.servername" value="${server.host}"/>
+      </then>
+    </if>
+
+    <!-- update the virtual host file based on the input server parameters -->
+    <copy file="${config.dir}/test/template_VirtualHost.conf"
+          tofile="${staging.dir}/${vhost.servername}.conf">
+      <filterchain>
+        <replacetokens begintoken="@@" endtoken="@@">
+          <token key="server_host" value="${server.host}" />
+          <token key="vhost_servername" value="${vhost.servername}" />
+          <token key="server_docroot" value="${server.docroot}" />
+          <token key="project_name" value="${phing.project.name}" />
+        </replacetokens>
+      </filterchain>
+    </copy>
+
+    <!-- copy any httpd configuration files to the server -->
+    <exec command="scp ${staging.dir}/${vhost.servername}.conf
+                   ${server.username}@${server.host}:/tmp"
+          checkreturn="true"
+    />
+
+    <!-- copy the application config to the correct location -->
+    <exec command="scp ${config.dir}/test/*.php
+                   ${server.username}@${server.host}:/tmp"
+          checkreturn="true"
+    />
+
+  </target>
+
+
+  <!-- ============================================  -->
+  <!-- Target: restartHttpd                          -->
+  <!-- ============================================  -->
+  <target name="restartHttpd">
+
+    <echo msg="Restarting httpd on ${server.host}" />
+
+    <if>
+      <not>
+        <isset property="vhost.servername"/>
+      </not>
+      <then>
+        <property name="vhost.servername" value="${server.host}"/>
+      </then>
+    </if>
+
+    <!-- ssh in and move the files to the correct location, followed by restarting httpd -->
+    <exec command="ssh -t ${server.username}@${server.host}
+                   'sudo cp /tmp/${vhost.servername}.conf ${server.vhosts.dir} ;
+                    sudo cp /tmp/*.php ${server.php.include.dir} ;
+                    sudo rm /tmp/${vhost.servername}.conf /tmp/*.php  ;
+                    sudo mkdir ${server.docroot}/${phing.project.name} ;
+                    sudo service httpd restart'"
+          checkreturn="true"
+    />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: deploy                                -->
+  <!-- ============================================  -->
+  <target name="deploy">
+
+    <fail unless="server.host" message="Need server address to continue: 'server.host'"/>
+
+    <if>
+      <not>
+        <available file="${staging.dir}/${phing.project.name}.tar" />
+      </not>
+      <then>
+        <phingcall target="package"/>
+      </then>
+    </if>
+
+    <if>
+      <not>
+        <isset property="server.username"/>
+      </not>
+      <then>
+        <property name="server.username" value="ec2-user"/>
+      </then>
+    </if>
+
+    <if>
+      <not>
+        <isset property="server.docroot"/>
+      </not>
+      <then>
+        <property name="server.docroot" value="/var/www/html"/>
+      </then>
+    </if>
+
+    <foreach list="${server.host}" param="server.host" target="copyCodeToServer"/>
+    <foreach list="${server.host}" param="server.host" target="deployCodeOnServer"/>
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: copyCodeToServer                      -->
+  <!-- ============================================  -->
+  <target name="copyCodeToServer">
+
+    <!-- First, scp the source code to the test instance -->
+    <exec command="scp ${staging.dir}/${phing.project.name}.tar
+                   ${server.username}@${server.host}:/tmp"
+          checkreturn="true"
+    />
+
+    <!-- untar the file on the test server and then remove it -->
+    <exec command="ssh -t ${server.username}@${server.host}
+                   'sudo tar -xf /tmp/${phing.project.name}.tar -C /tmp ;
+                    sudo rm -f /tmp/${phing.project.name}.tar'"
+          checkreturn="true"
+    />
+
+  </target>
+
+  <!-- ============================================  -->
+  <!-- Target: deployCodeOnServer                    -->
+  <!-- ============================================  -->
+  <target name="deployCodeOnServer">
+
+    <!-- sync the project folder to the httpd document root
+         remove the source
+         ensure the application temp folder is writable -->
+    <exec command="ssh -t ${server.username}@${server.host}
+                   'sudo rsync -r /tmp/${phing.project.name} ${server.docroot} ;
+                    sudo rm -r -f /tmp/${phing.project.name} ;
+                    sudo chmod -R 777 ${server.docroot}/${phing.project.name}/app/tmp'"
+          checkreturn="true"
+    />
+
+  </target>
+
+</project>
+

@@ -27,7 +27,7 @@
  */
   Router::mapResources('buckets');
   Router::mapResources('tasks');
-  Router::mapResources('task_list');
+  Router::mapResources('task_lists');
   Router::parseExtensions();
 	Router::connect('/', array('controller' => 'time_tracker', 'action' => 'home', 'home'));
   Router::connect('/time_tracker/', array('controller' => 'time_tracker', 'action' => 'home', 'home'));

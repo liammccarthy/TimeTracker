@@ -1,6 +1,5 @@
-Backbone.emulateHTTP = true;
+//Backbone.emulateHTTP = true;
 var CURRENT_BUCKET;
-var CURRENT_TASK;
 
 $().ready(function(){
 
@@ -61,7 +60,6 @@ $().ready(function(){
   window.TaskList = Backbone.Model.extend({
     initialize: function(){
       console.log("created Model TaskList");
-
     },
     urlRoot: "",
     idAttribute: "task_list_id",
@@ -121,6 +119,12 @@ $().ready(function(){
     render: function(){
       this.$el.html(this.template(this.model.toJSON()));
       return this.el;
+    },
+    events: {
+      "click .bucket_div" : "selectBucket"
+    },
+    selectBucket:function(){
+      app.navigate('buckets/'+this.model.get("bucket_id"), true);
     }
   });
 
@@ -139,15 +143,19 @@ $().ready(function(){
         this.$el.append(new TaskSelectionItemView({model: task}).render())
       }, this);
       return this.el;
-    },
-    events:{
-      "click .new-task" : "newTask"
-    },
-    newTask:function(){
-      app.navigate('tasks/new', true);
-      return false;
     }
-
+  });
+  window.AppView = Backbone.View.extend({
+    el: $('#app'),
+    initialize: function(){
+      console.log("AppView is created");
+    },events:{
+      'click .new_tasks_div' : 'newTask'
+    },
+    newTask:function(event){
+      event.preventDefault();
+      app.newTask();
+    }
   });
 
   window.TaskSelectionItemView = Backbone.View.extend({
@@ -160,9 +168,14 @@ $().ready(function(){
     render: function(){
       this.$el.html(this.template(this.model.toJSON()));
       return this.el;
+    },
+    events:{
+      "click .tasks_div" : "selectTask"
+    },
+    selectTask : function(){
+      app.navigate('tasks/'+this.model.get("task_id"), true);
     }
   });
-
   window.ItemView = Backbone.View.extend({
     el: $('#item_header'),
     initialize: function(){
@@ -173,18 +186,71 @@ $().ready(function(){
     render: function(){
       console.log("render: ItemView");
         this.$el.html(this.template(this.model.toJSON()));
-    }
+        if(this.model.get('task_name') === ""){
+          this.$el.addClass("editing");
+        }
+    },
+    clear_item: function(){
+      this.$el.html('');
+    },
+    events: {
+      "dblclick .view"  : "edit",
+      "click a.destroy" : "clear",
+      "keypress .edit"  : "updateOnEnter",
+      "blur .edit"      : "closeEdit",
+      "keypress .new_time" : "updateTime"
+    },
+    edit: function(){
+      console.log("edit_label called: ItemView");
+      $("#task_name_field").addClass("editing");
 
+    },
+    clear: function(){
+      console.log("clear called: ItemView");
+      this.model.clear();
+    },
+    updateOnEnter: function(e){
+      console.log("updateOnEnter called: ItemView");
+      if (e.keyCode == 13) this.closeEdit(e);
+    },
+    closeEdit: function(e){
+      console.log("closeEdit called : ItemView");
+      var value = e.target.value;
+      if (!value) this.clear();
+      this.model.save({task_id : $('#task_id').val(), task_name: value});
+      $("#task_name_field").removeClass("editing");
+      app.showTaskList(CURRENT_BUCKET);
+      this.render();
+
+    },
+    updateTime: function(e){
+      if (e.keyCode == 13){
+        var value = parseFloat(e.target.value);
+        var accumulated = parseFloat(this.model.get('task_time'));
+        var time = value + accumulated;
+        this.model.save({task_id : $('#task_id').val(), task_time : time}, {
+          success:function(){
+            app.ItemView.render();
+          }
+        });
+        if (!value) this.clear();
+      }
+
+    }
   });
   window.ItemListView = Backbone.View.extend({
     el: $('#item_list'),
     initialize: function(){
       this.model.bind('reset', this.render, this);
       this.model.bind('change', this.render(), this);
+
       this.model.bind('add', this.appendNewItem(), this);
     },
     appendNewItem: function( taskLists){
       this.$el.append(new ItemListViewItem({model: taskLists}).render());
+    },
+    clear_list: function(){
+      this.$el.html('');
     },
     render: function(){
       this.$el.html('');
@@ -207,30 +273,34 @@ $().ready(function(){
       "dblclick .view"  : "edit",
       "click a.destroy" : "clear",
       "keypress .edit"  : "updateOnEnter",
-      "blur .edit"      : "close"
+      "blur .edit"      : "closeEdit"
     },
     edit: function(){
-      console.log("edit_label called");
+      console.log("edit_label called: ItemListViewItem");
       this.$el.addClass("editing");
     },
     clear: function(){
-      console.log("clear called");
+      console.log("clear called: ItemListViewItem");
       this.model.clear();
     },
     updateOnEnter: function(e){
-      console.log("updateOnEnter called");
-      if (e.keyCode == 13) this.close();
+      console.log("updateOnEnter called: ItemListViewItem");
+      if (e.keyCode == 13) this.closeEdit(e);
     },
-    close: function(){
-      console.log("close called");
-  /*    var value = this.input.val();
+    closeEdit: function(e){
+      console.log("closeEdit called : ItemListViewItem");
+      var value = e.target.value;
       if (!value) this.clear();
-      this.model.save({title: value});*/
+      this.model.save({task_desc: value});
       this.$el.removeClass("editing");
+      this.render();
     },
     render: function(){
-      this.$el.html(this.template(this.model.toJSON()));
-      return this.el;
+      if(this.model != undefined){
+        console.log("render called : ItemListViewItem");
+        this.$el.html(this.template(this.model.toJSON()));
+        return this.el;
+      }
     }
   });
 
@@ -238,43 +308,59 @@ $().ready(function(){
     routes: {
       ""			: "list",
       "buckets/:id" : "showTaskList",
-      "tasks/:id" : "showTask",
-      "tasks/new/" : "newTask"
+      "tasks/:id" : "showTask"
+    },
+    initialize:function(){
+      this.AppView = new AppView();
     },
     showTask: function(id){
-      CURRENT_TASK = id;
       console.log("showTask called : AppRouter")
 
-      app.loadBucketInfo(id);
-      var task = new Task({task_id : id});
-      task.fetch();
-      this.ItemView = new ItemView({model : task});
-      var taskLists = new TaskLists();
-      taskLists.fetch({ data: $.param({ task_id: id}) });
-      this.ItemListView = new ItemListView({model: taskLists });
+      this.loadBucketInfo(id);
+      this.task = new Task({task_id : id});
+      this.task.fetch();
+      this.ItemView = new ItemView({model :   this.task});
+      this.taskLists = new TaskLists();
+      this.taskLists.fetch({ data: $.param({ task_id: id}) });
+      this.ItemListView = new ItemListView({model: this.taskLists });
     },
     list: function() {
       console.log('list Called : AppRouter');
-      var buckets = new Buckets();
-      app.BucketListView = new BucketListView({model: buckets});
-      buckets.fetch();
+      this.buckets = new Buckets();
+      this.BucketListView = new BucketListView({model: this.buckets});
+      this.buckets.fetch();
     },
    showTaskList: function(id, save){
       CURRENT_BUCKET = id;
       console.log("showTaskList called : AppRouter");
-      app.list();
+      this.list();
       if(!save){
         $('#item_header').html('');
         $('#item_list').html('');
       }
-      var tasks = new Tasks();
-      this.TaskSelectionView = new TaskSelectionView({model: tasks});
-      tasks.fetch({ data: $.param({ bucket_id: id}) });
+      this.tasks = new Tasks();
+      this.TaskSelectionView = new TaskSelectionView({model: this.tasks});
+      this.tasks.fetch({ data: $.param({ bucket_id: id}) });
     },
-    newTask : function(){
-      console.log("newTask called");
-      app.showTaskList(CURRENT_BUCKET);
+    showView: function (selector, view) {
+      console.log("showView Called");
+      if (this.currentView) this.currentView.close();
 
+      $(selector).html(view.render());
+      this.currentView = view;
+
+      return view;
+    },
+    newTask : function(task){
+      console.log("newTask called");
+       var task = new Task({bucket_id: CURRENT_BUCKET});
+       task.save({}, {
+        success: function(){
+          console.log(task.toJSON());
+          app.navigate('tasks/'+task.get('task_id'), true);
+        }
+      });
+      return false;
     },
     loadBucketInfo: function(id){
       console.log("loadBucketInfo called with " + id + " : AppRouter");
@@ -284,7 +370,7 @@ $().ready(function(){
         dataType: 'json',
         success: function(data) {
           console.log("Loading all previous information");
-            app.showTaskList(data.bucket_id, true);
+          app.showTaskList(data.bucket_id, true);
         },
         error:function(){
             console.log("error");

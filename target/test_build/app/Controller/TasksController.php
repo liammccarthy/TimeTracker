@@ -27,7 +27,19 @@ class TasksController extends AppController {
     $this->render('json_data_echo');
 
   }
+ /* public function new_task($bucket_id){
+    $this->layout = 'ajax';
+
+    );
+    $this->Task->create($array);
+    $matches =  $this->Task->findByTaskId($this->Task->getInsertID());
+    $this->set('data',$matches['Task']);
+    $this->render('json_data_echo');
+  }*/
   //GET
+  public function get_ajax_data($data){
+    return json_decode($data, true);
+  }
   public function view($id = null){
     $this->layout = 'ajax';
     $matches =$this->Task->findByTaskId($id);
@@ -37,15 +49,36 @@ class TasksController extends AppController {
   //POST
   public function add(){
     $this->layout = 'ajax';
-    $this->Task->create($this->request->data);
-    $this->set('data', $this->Task->findByTaskId($this->Task->getInsertID()));
+    $ajax_data = $this->get_ajax_data($this->request->input());
+    $insert_data = array(
+        'bucket_id' => $ajax_data['bucket_id'],
+        'user_id'   => $this->Auth->user('id'),
+        'task_time' => 0.0,
+        'task_name' => ''
+      );
+    $this->Task->create();
+    if($this->Task->save($insert_data)){
+      $matches = $this->Task->findByTaskId($this->Task->getInsertID());
+      $matches = $matches['Task'];
+    }else{
+      $matches = $ajax_data;
+      $matches['status'] = 'failure';
+    }
+    $this->set('data', $matches);
     $this->render('json_data_echo');
   }
   //PUT or POST
   public function edit($id = null){
     $this->layout = 'ajax';
-    $this->Task->save($this->request->data);
-    $this->set('data', $this->Task->findByTaskId($id));
+    $insert_data = $this->get_ajax_data($this->request->input());
+    if($this->Task->save($insert_data)){
+      $return_data = $this->Task->findByTaskId($id);
+      $this->set('data', $return_data['Task']);
+    }else{
+      $data = array();
+      $data['status'] = 'NOPE';
+      $this->set('data',$data);
+    }
     $this->render('json_data_echo');
   }
   //DELETE

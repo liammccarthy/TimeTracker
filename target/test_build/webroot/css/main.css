@@ -123,6 +123,69 @@ section{
     border-style:solid;
     background-color:#f5f5f5;
 }
+.new_tasks_div{
+    border: black;
+    float:left;
+    width:200px;
+    height:25px;
+    text-align: center;
+    border-style:solid;
+    background-color:#adff2f;
+}
 .bucket_div.selected{
     background-color: #d3d3d3;
+}
+
+#task_info_div:hover .destroy {
+    display: block;
+}
+
+#task_info_div .edit{
+    display:none;
+}
+
+#task_info_div li.editing {
+    border-bottom: none;
+    margin-top: -1px;
+    padding: 0;
+}
+
+#task_info_div li.editing .edit {
+    display: block;
+    width: 350px;
+    padding: 3px 5px 4px 2px;
+    margin: 0;
+}
+
+#task_info_div li.editing .view {
+    display: none;
+}
+
+.add_time{
+    height:25px;
+    width:25px;
+    text-align: center;
+}
+#task_info_div {
+    margin: 10px 0;
+    padding: 0;
+    list-style: none;
+}
+
+#task_info_div div {
+    padding: 2px 2px 2px 0;
+    position: relative;
+    font-size: 16px;
+    border-bottom: 1px solid #cccccc;
+}
+
+#task_info_div .destroy {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    display: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    background: url(../img/destroy.png) no-repeat;
 }

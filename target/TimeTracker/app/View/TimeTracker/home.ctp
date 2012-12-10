@@ -4,31 +4,31 @@
 ?>
 <script type="text/template" id="bucket-item-template">
   <div class = "bucket_div">
-    <a href = "#buckets/<%= bucket_id %>" class = "bucket-choice"><%= bucket_name %></a>
+    <label><%= bucket_name %></label>
   </div>
 </script>
 
 <script type="text/template" id="task-item-template">
   <div class = "tasks_div">
-  <a href = "#tasks/<%= task_id %>" class = "task-choice"><%= task_name %></a>
-  </div>
-</script>
-
-<script type="text/template" id="new-task-list-item-header-template">
-  <div class = 'time-div'>
-    <label>Task Title :</label> <input type="text" id ="new_task_title"/><BR>
-    <label>Add time : </label><input type = "text" id = "new_task_time" name = "new_time"/><a href ="#add_time/<%= task_id %>" id ="add_time" name = "add_time">+</a>
-  </div>
-  <div class = 'task-list'>
-    <input type = "text" class = "new_task_desc"/>
+  <input type = "hidden" id = "task_list_id" value = "<%= task_id %>"/>
+  <label><%= task_name %></label>
   </div>
 </script>
 
 <script type="text/template" id="task-list-item-header-template">
-  <div class = 'time-div'>
-  <label>Task Title :</label> <%= task_name %> <BR>
-  <label>Accumulated Time:</label><%= task_time %><BR>
-  <label>Add time : </label><input type = "text" id = "new_time" name = "new_time"/><a href ="#add_time/<%= task_id %>" id ="add_time" name = "add_time">+</a>
+  <div id = 'task_info_div'>
+    <li id = "task_name_field">
+      <input type = "hidden" id = "task_id" value ="<%= task_id %>"/>
+      <div class="view">
+        <label>Task Title :</label>
+        <label class = "label"><%= task_name %></label>
+        <a class="destroy"></a>
+      </div>
+      <input class="edit" type="text" id ="task_title"  value="<%= task_name %>" />
+    </li>
+
+  <label>Accumulated Time:</label><input type = "text" disabled="disabled"  class="accumulated_time" value ="<%= task_time %>"/><BR>
+  <label>Add time : </label><input type = "text" class = "new_time"/>
    <div class = "column-header">Task Details</div>
   </div>
 </script>
@@ -40,24 +40,21 @@
   </div>
   <input class="edit" type="text" value="<%= task_desc %>" />
 </script>
-
-<div class = 'data-column'>
-  <div class = "column-header">Bucket List</div>
-  <div id ="bucket_div"></div>
-</div>
-<div class = 'data-column'>
-  <div class = "column-header">Task List</div>
-  <div id ="tasks_div"></div>
-  <div id ="new_task">
-    <div class = "tasks_div">
-    <a href ="#new_task">New Task</a>
-    </div>
+<div id = "app">
+  <div class = 'data-column'>
+    <div class = "column-header">Bucket List</div>
+    <div id ="bucket_div"></div>
   </div>
-</div>
+  <div class = 'data-column'>
+    <div class = "column-header">Task List</div>
+    <div id ="tasks_div"></div>
+    <div id = "new_task_div" class = "new_tasks_div"><label>New Task</label></div>
+  </div>
 
-<div class = 'info-column'>
-<div class = "column-header">Task</div>
-  <div id = "item_div">
-  <div id ="item_header"></div>
-  <div id ="item_list"></div>
+  <div class = 'info-column'>
+  <div class = "column-header">Task</div>
+    <div id = "item_div">
+    <div id ="item_header"></div>
+    <div id ="item_list"></div>
+  </div>
 </div>

@@ -84,7 +84,7 @@ class TasksController extends AppController {
   //DELETE
   public function delete($id = null){
     $this->layout = 'ajax';
-    $this->set('data', $this->Task->delete($id));
+    $this->set('data', $this->Task->deleteAll(array('task_id' =>$id), true));
     $this->render('json_data_echo');
 
   }

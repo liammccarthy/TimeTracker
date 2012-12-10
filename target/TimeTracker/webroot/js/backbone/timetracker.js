@@ -1,5 +1,6 @@
 //Backbone.emulateHTTP = true;
 var CURRENT_BUCKET;
+var CURRENT_TASK;
 
 $().ready(function(){
 
@@ -20,6 +21,9 @@ $().ready(function(){
     },
     get_id: function () {
       return this.get("bucket_id");
+    },
+    clear:function(){
+      this.destroy();
     }
   });
   window.Buckets = Backbone.Collection.extend({
@@ -46,6 +50,11 @@ $().ready(function(){
     },
     get_id: function () {
       return this.get("task_id");
+    },
+    clear:function(){
+      this.destroy();
+      console.log("Tasks clear called : Task destroyed");
+      app.showTaskList(CURRENT_BUCKET);
     }
   });
   window.Tasks = Backbone.Collection.extend({
@@ -53,7 +62,10 @@ $().ready(function(){
       console.log("created Collection Tasks")
     },
     model: Task,
-    url: "/tasks/"
+    url: "/tasks/",
+    clear:function(){
+    this.destroy();
+  }
 
   });
 
@@ -72,6 +84,9 @@ $().ready(function(){
     },
     get_id: function () {
       return this.get("task_list_id");
+    },
+    clear:function(){
+      this.destroy();
     }
   });
 
@@ -113,8 +128,8 @@ $().ready(function(){
     tagName : 'div',
     initialize: function(){
       this.template = _.template($('#bucket-item-template').html());
-      this.model.bind('change', this.render(), this);
-      this.model.bind('destroy', this.close(), this);
+      this.model.bind('change', this.render, this);
+      this.model.bind('destroy', this.close, this);
     },
     render: function(){
       this.$el.html(this.template(this.model.toJSON()));
@@ -150,11 +165,14 @@ $().ready(function(){
     initialize: function(){
       console.log("AppView is created");
     },events:{
-      'click .new_tasks_div' : 'newTask'
+      'click .new_tasks_div' : 'newTask',
+      'click .new_item_div' : 'newItem'
     },
     newTask:function(event){
-      event.preventDefault();
       app.newTask();
+    },
+    newItem:function(event){
+      app.newItem();
     }
   });
 
@@ -162,8 +180,8 @@ $().ready(function(){
     tagName : 'div',
     initialize: function(){
       this.template = _.template($('#task-item-template').html());
-      this.model.bind('change', this.render(), this);
-      this.model.bind('destroy', this.close(), this);
+      this.model.bind('change', this.render, this);
+      this.model.bind('destroy', this.close, this);
     },
     render: function(){
       this.$el.html(this.template(this.model.toJSON()));
@@ -194,7 +212,7 @@ $().ready(function(){
       this.$el.html('');
     },
     events: {
-      "dblclick .view"  : "edit",
+      "click .view"  : "edit",
       "click a.destroy" : "clear",
       "keypress .edit"  : "updateOnEnter",
       "blur .edit"      : "closeEdit",
@@ -242,9 +260,8 @@ $().ready(function(){
     el: $('#item_list'),
     initialize: function(){
       this.model.bind('reset', this.render, this);
-      this.model.bind('change', this.render(), this);
-
-      this.model.bind('add', this.appendNewItem(), this);
+      this.model.bind('change', this.render, this);
+      this.model.bind('add', this.appendNewItem, this);
     },
     appendNewItem: function( taskLists){
       this.$el.append(new ItemListViewItem({model: taskLists}).render());
@@ -282,6 +299,7 @@ $().ready(function(){
     clear: function(){
       console.log("clear called: ItemListViewItem");
       this.model.clear();
+      app.showTask(CURRENT_TASK, true);
     },
     updateOnEnter: function(e){
       console.log("updateOnEnter called: ItemListViewItem");
@@ -315,7 +333,7 @@ $().ready(function(){
     },
     showTask: function(id){
       console.log("showTask called : AppRouter")
-
+      CURRENT_TASK = id;
       this.loadBucketInfo(id);
       this.task = new Task({task_id : id});
       this.task.fetch();
@@ -330,14 +348,14 @@ $().ready(function(){
       this.BucketListView = new BucketListView({model: this.buckets});
       this.buckets.fetch();
     },
-   showTaskList: function(id, save){
+   showTaskList: function(id){
       CURRENT_BUCKET = id;
       console.log("showTaskList called : AppRouter");
       this.list();
-      if(!save){
+/*      if(!save){
         $('#item_header').html('');
         $('#item_list').html('');
-      }
+      }*/
       this.tasks = new Tasks();
       this.TaskSelectionView = new TaskSelectionView({model: this.tasks});
       this.tasks.fetch({ data: $.param({ bucket_id: id}) });
@@ -351,7 +369,7 @@ $().ready(function(){
 
       return view;
     },
-    newTask : function(task){
+    newTask : function(){
       console.log("newTask called");
        var task = new Task({bucket_id: CURRENT_BUCKET});
        task.save({}, {
@@ -361,6 +379,14 @@ $().ready(function(){
         }
       });
       return false;
+    },
+    newItem : function(){
+      console.log("newItem called");
+      var taskList = new TaskList({task_id : CURRENT_TASK});
+      taskList.save({}, {
+        success: function(){
+          app.showTask(CURRENT_TASK, true);
+      }});
     },
     loadBucketInfo: function(id){
       console.log("loadBucketInfo called with " + id + " : AppRouter");

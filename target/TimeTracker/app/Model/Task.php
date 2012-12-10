@@ -11,8 +11,6 @@ class Task extends AppModel {
       'foreignKey'   => 'user_id'
     )
   );
-
-
   public $hasMany = array(
     'TaskLists' => array(
       'className'  => 'TaskLists',

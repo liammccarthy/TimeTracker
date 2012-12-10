@@ -32,7 +32,7 @@ CREATE TABLE task_lists(
 	task_list_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 	task_desc varchar(500),
 	task_id INT UNSIGNED,
-	FOREIGN KEY (task_id) REFERENCES tasks(task_id)
+	FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE
 );
 
 

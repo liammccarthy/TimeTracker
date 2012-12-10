@@ -189,3 +189,6 @@ section{
     height: 20px;
     background: url(../img/destroy.png) no-repeat;
 }
+#item_list .view{
+    height: 20px;
+}

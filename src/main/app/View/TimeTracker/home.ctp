@@ -40,6 +40,7 @@
   </div>
   <input class="edit" type="text" value="<%= task_desc %>" />
 </script>
+
 <div id = "app">
   <div class = 'data-column'>
     <div class = "column-header">Bucket List</div>
@@ -48,7 +49,7 @@
   <div class = 'data-column'>
     <div class = "column-header">Task List</div>
     <div id ="tasks_div"></div>
-    <div id = "new_task_div" class = "new_tasks_div"><label>New Task</label></div>
+    <div class ="new_tasks_div"><label>New Task</label></div>
   </div>
 
   <div class = 'info-column'>
@@ -56,5 +57,7 @@
     <div id = "item_div">
     <div id ="item_header"></div>
     <div id ="item_list"></div>
+    <div class = "new_item_div"><label>New Item</label></div>
+
   </div>
 </div>

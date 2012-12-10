@@ -33,8 +33,20 @@ class TaskListsController extends AppController {
   //POST
   public function add(){
     $this->layout = 'ajax';
-    $this->TaskList->create($this->request->data);
-    $this->set('data', $this->TaskList->findByTaskListId($this->TaskList->getInsertID()));
+    $ajax_data = $this->get_ajax_data($this->request->input());
+    $insert_data = array(
+      'task_id' => $ajax_data['task_id'],
+      'task_desc' => ''
+    );
+    $this->TaskList->create();
+    if($this->TaskList->save($insert_data)){
+      $matches = $this->TaskList->findByTaskListId($this->TaskList->getInsertID());
+      $matches = $matches['TaskList'];
+    }else{
+      $matches = $ajax_data;
+      $matches['status'] = 'failure';
+    }
+    $this->set('data', $matches);
     $this->render('json_data_echo');
   }
 
